@@ -10,9 +10,10 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @Getter
 @Setter
+@Builder
 public class OrderItemRequest {
     private Long id;
-    private String sku_code;
+    private String skuCode;
     private BigDecimal price;
     private Integer quantiry;
 }

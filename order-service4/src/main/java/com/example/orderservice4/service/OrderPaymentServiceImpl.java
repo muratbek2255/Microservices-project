@@ -5,6 +5,7 @@ import com.example.orderservice4.dto.OrderItemRequest;
 import com.example.orderservice4.dto.OrderRequest;
 import com.example.orderservice4.entity.Order;
 import com.example.orderservice4.entity.OrderItems;
+import com.example.orderservice4.repository.OrderItemRepository;
 import com.example.orderservice4.repository.OrderRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -19,15 +20,19 @@ import java.util.UUID;
 public class OrderPaymentServiceImpl implements OrderPayment {
 
     private final OrderRepository orderRepository;
+
+    private final OrderItemRepository orderItemRepository;
+
     private final WebClient.Builder webClient;
 
     @Autowired
-    public OrderPaymentServiceImpl(OrderRepository orderRepository, WebClient.Builder webClient) {
+    public OrderPaymentServiceImpl(OrderRepository orderRepository, OrderItemRepository orderItemRepository, WebClient.Builder webClient) {
         this.orderRepository = orderRepository;
+        this.orderItemRepository = orderItemRepository;
         this.webClient = webClient;
     }
 
-    public void placeOrder(OrderRequest orderRequest) {
+    public String placeOrder(OrderRequest orderRequest) {
         Order order = new Order();
         order.setOrderNumber(UUID.randomUUID().toString());
 
@@ -42,7 +47,7 @@ public class OrderPaymentServiceImpl implements OrderPayment {
 
         InventoryResponse[] result = webClient.build().get().
                 uri("http://inventory-service/api/v1/inventory", uriBuilder -> uriBuilder.
-                        queryParam("sku_code", skuCode).build()).
+                        queryParam("skuCode", skuCode).build()).
                 retrieve().
                 bodyToMono(InventoryResponse[].class).
                 block();
@@ -51,6 +56,7 @@ public class OrderPaymentServiceImpl implements OrderPayment {
 
         if(allProductsIsInStock) {
             orderRepository.save(order);
+            return "Order Place Successfully";
         }else {
             throw new IllegalArgumentException("Product is not in stock");
         }
@@ -62,9 +68,11 @@ public class OrderPaymentServiceImpl implements OrderPayment {
 
         OrderItems orderItems = new OrderItems();
 
-        orderItems.setSkuCode(orderItemRequest.getSku_code());
+        orderItems.setSkuCode(orderItemRequest.getSkuCode());
         orderItems.setPrice(orderItemRequest.getPrice());
         orderItems.setQuantiry(orderItemRequest.getQuantiry());
+
+        orderItemRepository.save(orderItems);
 
         return orderItems;
     }
